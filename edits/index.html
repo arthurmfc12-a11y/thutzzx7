@@ -1,0 +1,899 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>thut studio - Gestão de Edições Profissional</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0f172a',
+                        cardBg: '#1e293b',
+                        borderCol: '#334155',
+                        accent: '#6366f1'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .secure-preview {
+            position: relative;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        .secure-preview::after {
+            content: "THUT STUDIO - PROTEGIDO";
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.4);
+            color: rgba(255, 255, 255, 0.15);
+            font-size: 14px;
+            font-weight: bold;
+            pointer-events: none;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+<body class="bg-[#0f172a] text-slate-100 min-h-screen font-sans">
+
+    <!-- TOPO / HEADER COM A SUA LOGO -->
+    <header class="border-b border-slate-700 bg-slate-900 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 h-20 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <img src="logo.png" alt="Logo thut studio" class="w-12 h-12 rounded-xl object-cover shadow-lg bg-indigo-600">
+                <div>
+                    <h1 class="font-bold text-lg text-white">thut studio</h1>
+                    <p class="text-xs text-slate-400">Sistema Profissional de Edição</p>
+                </div>
+            </div>
+
+            <!-- CONTROLES DE SESSÃO E ADMIN -->
+            <div class="flex items-center space-x-3">
+                <div id="loggedUserBadge" class="hidden md:flex items-center space-x-2 bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-xl text-xs">
+                    <span class="text-slate-400">Logado:</span>
+                    <span id="headerClientName" class="font-bold text-indigo-400"></span>
+                    <button type="button" onclick="logoutClient()" class="text-red-400 hover:text-red-300 ml-2 cursor-pointer font-semibold">(Sair)</button>
+                </div>
+
+                <div class="flex items-center bg-slate-950 p-1.5 rounded-xl border border-slate-800" id="navToggleContainer">
+                    <button type="button" onclick="switchView('client')" id="btnClient" class="px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white shadow transition cursor-pointer">
+                        Painel do Cliente
+                    </button>
+                    <button type="button" onclick="tryAccessAdmin()" id="btnAdmin" class="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition cursor-pointer">
+                        Painel Admin
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8 space-y-8">
+
+        <!-- TELA DE AUTENTICAÇÃO (OBRIGATÓRIA AO ENTRAR) -->
+        <div id="authView" class="max-w-md mx-auto bg-slate-800 border border-slate-700 rounded-2xl p-6 space-y-6 shadow-2xl">
+            <div class="text-center space-y-1">
+                <span class="text-xs uppercase tracking-wider text-indigo-400 font-semibold bg-indigo-500/10 px-3 py-1 rounded-full">Acesso Restrito</span>
+                <h2 class="text-2xl font-bold text-white pt-2">Identifique-se</h2>
+                <p class="text-xs text-slate-400">Faça login com seu e-mail e senha para acessar o sistema.</p>
+            </div>
+
+            <!-- ABAS DE ALTERNAR ENTRE LOGIN E CADASTRO -->
+            <div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+                <button type="button" onclick="switchAuthTab('login')" id="tabLoginBtn" class="flex-1 py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white transition cursor-pointer">Entrar</button>
+                <button type="button" onclick="switchAuthTab('register')" id="tabRegisterBtn" class="flex-1 py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition cursor-pointer">Criar Conta</button>
+            </div>
+
+            <!-- FORMULÁRIO DE LOGIN -->
+            <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">E-mail Cadastrado</label>
+                    <input type="email" id="loginEmail" required placeholder="seuemail@gmail.com" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:border-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Senha</label>
+                    <input type="password" id="loginPassword" required placeholder="••••••••" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:border-indigo-500 outline-none">
+                </div>
+                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-3 rounded-xl text-sm font-semibold transition cursor-pointer shadow-lg">
+                    Entrar no Sistema
+                </button>
+            </form>
+
+            <!-- FORMULÁRIO DE CADASTRO -->
+            <form id="registerForm" onsubmit="handleRegister(event)" class="space-y-4 hidden">
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Nome ou Nome do Canal</label>
+                    <input type="text" id="regName" required placeholder="Ex: João Silva" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:border-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Seu E-mail (Gmail)</label>
+                    <input type="email" id="regEmail" required placeholder="seuemail@gmail.com" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:border-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">WhatsApp (com DDD)</label>
+                    <input type="tel" id="regWhatsapp" required placeholder="(11) 99999-9999" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:border-indigo-500 outline-none">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Crie uma Senha</label>
+                    <input type="password" id="regPassword" required placeholder="••••••••" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm text-white focus:border-indigo-500 outline-none">
+                </div>
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl text-sm font-semibold transition cursor-pointer shadow-lg">
+                    Cadastrar e Acessar
+                </button>
+            </form>
+        </div>
+
+        <!-- PAINEL DO CLIENTE (LOGADO) -->
+        <div id="clientView" class="space-y-8 hidden">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="md:col-span-2 bg-slate-800 border border-slate-700 rounded-2xl p-6 flex flex-col justify-between">
+                    <div>
+                        <span class="text-xs uppercase tracking-wider text-indigo-400 font-semibold bg-indigo-500/10 px-3 py-1 rounded-full">Área do Cliente</span>
+                        <h2 class="text-2xl font-bold mt-3">Olá, <span id="welcomeClientName" class="text-indigo-400">Cliente</span>!</h2>
+                        <p class="text-slate-400 text-sm mt-1">Envie seu arquivo, agende seu horário nas janelas permitidas (07h-11h ou 20h-22h) e acompanhe tudo de perto.</p>
+                    </div>
+                    <div class="flex flex-wrap gap-4 mt-6">
+                        <button type="button" onclick="openModal('scheduleModal')" class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-medium transition cursor-pointer shadow-lg">
+                            + Novo Agendamento
+                        </button>
+                        <button type="button" onclick="openModal('planModal')" class="bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-600 px-5 py-2.5 rounded-xl text-sm font-medium transition cursor-pointer">
+                            ⚡ Comprar Pacote Mensal (R$ 120)
+                        </button>
+                    </div>
+                </div>
+
+                <!-- CRÉDITOS -->
+                <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 flex flex-col justify-between">
+                    <div>
+                        <span class="text-sm font-medium text-slate-400">Créditos Disponíveis</span>
+                        <div class="mt-4 flex items-baseline gap-2">
+                            <span id="clientCreditsDisplay" class="text-4xl font-extrabold text-white">0</span>
+                            <span class="text-sm text-slate-400">créditos</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-700 text-xs text-slate-400">
+                        <span>Adquira um pacote para ganhar créditos</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABELA DE PEDIDOS DO CLIENTE -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6">
+                <h3 class="text-lg font-bold mb-4 text-white">Meus Pedidos, Chat e Entregas</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-700 text-xs text-slate-400 uppercase">
+                                <th class="py-3 px-4">Data / Horário</th>
+                                <th class="py-3 px-4">Arquivo Bruto</th>
+                                <th class="py-3 px-4">Status</th>
+                                <th class="py-3 px-4">Prévia & Timestamps</th>
+                                <th class="py-3 px-4">Chat / Resultado / Avaliação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clientOrdersTable" class="divide-y divide-slate-700/50 text-sm"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- MURAL DE AVALIAÇÕES REAIS DOS CLIENTES -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 space-y-4">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-bold text-white">⭐ Avaliações Reais de Clientes</h3>
+                    <div class="text-xs text-emerald-400 font-semibold bg-emerald-500/10 px-3 py-1 rounded-full" id="clientAverageRatingBadge">Média: 0.0 estrelas</div>
+                </div>
+                <div id="clientReviewsGrid" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <p class="text-xs text-slate-500 italic col-span-3">Nenhuma avaliação cadastrada por clientes ainda. Seja o primeiro a concluir um pedido e avaliar!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAINEL ADMIN -->
+        <div id="adminView" class="space-y-8 hidden">
+            <!-- CARDS DO ADMIN -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 flex flex-col justify-between">
+                    <div>
+                        <span class="text-xs uppercase tracking-wider text-emerald-400 font-semibold bg-emerald-500/10 px-3 py-1 rounded-full">Financeiro</span>
+                        <h3 class="text-sm font-medium text-slate-400 mt-3">Faturamento Total do Mês</h3>
+                        <div class="mt-2 flex items-baseline gap-2">
+                            <span id="adminRevenueDisplay" class="text-4xl font-extrabold text-white">R$ 0,00</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-700 text-xs text-slate-400">
+                        <span>Soma de pacotes e avulsos aprovados</span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 flex flex-col justify-between">
+                    <div>
+                        <span class="text-xs uppercase tracking-wider text-indigo-400 font-semibold bg-indigo-500/10 px-3 py-1 rounded-full">Comunidade</span>
+                        <h3 class="text-sm font-medium text-slate-400 mt-3">Clientes Cadastrados</h3>
+                        <div class="mt-2 flex items-baseline gap-2">
+                            <span id="adminClientsCount" class="text-4xl font-extrabold text-white">0</span>
+                            <span class="text-sm text-slate-400">contas</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-700 text-xs text-slate-400">
+                        <span>Usuários com acesso ao sistema</span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 flex flex-col justify-between">
+                    <div>
+                        <span class="text-xs uppercase tracking-wider text-amber-400 font-semibold bg-amber-500/10 px-3 py-1 rounded-full">Reputação</span>
+                        <h3 class="text-sm font-medium text-slate-400 mt-3">Média de Avaliações Reais</h3>
+                        <div class="mt-2 flex items-baseline gap-2">
+                            <span id="adminRatingDisplay" class="text-4xl font-extrabold text-white">0.0</span>
+                            <span class="text-sm text-amber-400">★★★★★</span>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-4 border-t border-slate-700 text-xs text-slate-400">
+                        <span id="adminTotalReviewsCount">Baseado em 0 avaliações</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABELA DE CLIENTES CADASTRADOS -->
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6">
+                <h3 class="text-lg font-bold text-white mb-4">👥 Clientes Cadastrados no Sistema</h3>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-700 text-xs text-slate-400 uppercase">
+                                <th class="py-2 px-4">Nome</th>
+                                <th class="py-2 px-4">E-mail (Gmail)</th>
+                                <th class="py-2 px-4">WhatsApp</th>
+                            </tr>
+                        </thead>
+                        <tbody id="adminClientsTable" class="divide-y divide-slate-700/50 text-xs"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="bg-slate-800 border border-slate-700 rounded-2xl p-6 space-y-6">
+                <div>
+                    <h3 class="text-lg font-bold text-white mb-2">Confirmação de Pagamentos PIX (Pacotes)</h3>
+                    <p class="text-xs text-slate-400 mb-4">O cliente solicitou o pacote. Verifique se o PIX caiu antes de liberar.</p>
+                    <div id="adminPlanRequests" class="space-y-3">
+                        <p class="text-xs text-slate-500 italic" id="noPlanMsg">Nenhuma solicitação de pacote pendente no momento.</p>
+                    </div>
+                </div>
+
+                <div class="border-t border-slate-700 pt-6">
+                    <h3 class="text-lg font-bold mb-4 text-white">Gestão de Pedidos, Links e Chat com Cliente</h3>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse">
+                            <thead>
+                                <tr class="border-b border-slate-700 text-xs text-slate-400 uppercase">
+                                    <th class="py-3 px-4">Cliente</th>
+                                    <th class="py-3 px-4">Data / Horário</th>
+                                    <th class="py-3 px-4">Arquivo</th>
+                                    <th class="py-3 px-4">Status & Ação</th>
+                                    <th class="py-3 px-4">Links (Prévia / Final)</th>
+                                    <th class="py-3 px-4">Chat & Revisões</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminOrdersTable" class="divide-y divide-slate-700/50 text-sm"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL AGENDAMENTO -->
+    <div id="scheduleModal" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-lg p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+                <h3 class="font-bold text-lg text-white">Novo Agendamento</h3>
+                <button type="button" onclick="closeModal('scheduleModal')" class="text-slate-400 hover:text-white cursor-pointer">✕</button>
+            </div>
+            <form onsubmit="handleScheduleSubmit(event)" class="space-y-3">
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Vídeo Bruto (Arquivo)</label>
+                    <input type="file" id="videoFile" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-sm text-slate-300">
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Observações Iniciais</label>
+                    <textarea id="videoObs" rows="2" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-sm text-white" placeholder="Estilo de edição desejado..."></textarea>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Data</label>
+                        <input type="date" id="scheduleDate" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-sm text-white">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-400 mb-1">Horário (Janela permitida)</label>
+                        <select id="scheduleTime" required class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-sm text-white">
+                            <option value="">Selecione...</option>
+                            <option value="07:00">07:00 às 09:00</option>
+                            <option value="08:00">08:00 às 10:00</option>
+                            <option value="09:00">09:00 às 11:00</option>
+                            <option value="20:00">20:00 às 22:00</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Pagamento</label>
+                    <select id="paymentMethod" class="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-sm text-white">
+                        <option value="single">Avulso - R$ 20 (PIX: arthurfadigas010@gmail.com)</option>
+                        <option value="credit">Usar 1 Crédito do Pacote</option>
+                    </select>
+                </div>
+                <div class="flex justify-end gap-2 pt-3 border-t border-slate-700">
+                    <button type="button" onclick="closeModal('scheduleModal')" class="px-4 py-2 bg-slate-700 text-slate-300 rounded-xl text-sm cursor-pointer">Cancelar</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-xl text-sm font-medium cursor-pointer">Salvar Agendamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL PLANO -->
+    <div id="planModal" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-800 border border-slate-700 rounded-2xl w-full max-w-md p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+                <h3 class="font-bold text-lg text-white">Comprar Pacote Mensal (8 Créditos)</h3>
+                <button type="button" onclick="closeModal('planModal')" class="text-slate-400 hover:text-white cursor-pointer">✕</button>
+            </div>
+            <p class="text-sm text-slate-300">Faça um PIX exato de <strong>R$ 120,00</strong> para a chave Nubank:</p>
+            <div class="bg-slate-900 p-3 rounded-xl font-mono text-indigo-400 text-sm select-all">arthurfadigas010@gmail.com</div>
+            <p class="text-xs text-slate-400">Após pagar, clique abaixo para registrar a solicitação.</p>
+            <button type="button" onclick="requestPlan()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl text-sm font-medium cursor-pointer">Já fiz o PIX - Solicitar Verificação</button>
+        </div>
+    </div>
+
+    <!-- MODAL DE AVALIAÇÃO (REVIEW) -->
+    <div id="reviewModal" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-md p-6 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+                <h3 class="font-bold text-lg text-white">Avaliar o Trabalho do thut studio</h3>
+                <button type="button" onclick="closeModal('reviewModal')" class="text-slate-400 hover:text-white cursor-pointer">✕</button>
+            </div>
+            <p class="text-xs text-slate-400">O que você achou da edição final? Sua avaliação aparecerá no mural para novos clientes.</p>
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Nota (Estrelas)</label>
+                    <select id="reviewRatingInput" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2 text-sm text-amber-400 font-bold">
+                        <option value="5">★★★★★ (5 Estrelas - Excelente)</option>
+                        <option value="4">★★★★☆ (4 Estrelas - Muito Bom)</option>
+                        <option value="3">★★★☆☆ (3 Estrelas - Bom)</option>
+                        <option value="2">★★☆☆☆ (2 Estrelas - Regular)</option>
+                        <option value="1">★☆☆☆☆ (1 Estrela - Ruim)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs text-slate-400 mb-1">Seu Comentário / Depoimento</label>
+                    <textarea id="reviewCommentInput" rows="3" class="w-full bg-slate-950 border border-slate-700 rounded-xl p-2 text-sm text-white" placeholder="Escreva como foi sua experiência..."></textarea>
+                </div>
+                <button type="button" onclick="submitReview()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2.5 rounded-xl text-sm font-medium cursor-pointer">Enviar Avaliação</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE PRÉVIA & FEEDBACK COM TIMESTAMP -->
+    <div id="previewModal" class="fixed inset-0 bg-black/90 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-2xl p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+                <h3 class="font-bold text-lg text-white">Prévia do Vídeo & Feedback por Timestamp</h3>
+                <button type="button" onclick="closeModal('previewModal')" class="text-slate-400 hover:text-white cursor-pointer">✕</button>
+            </div>
+            
+            <div class="secure-preview bg-black rounded-xl h-48 flex items-center justify-center overflow-hidden border border-slate-800">
+                <div id="previewContentArea" class="text-center p-4"></div>
+            </div>
+
+            <div class="space-y-3 pt-2">
+                <h4 class="text-xs font-semibold text-indigo-400 uppercase tracking-wider">Adicionar Revisão Detalhada (Timestamp)</h4>
+                <div class="flex gap-2">
+                    <input type="text" id="timestampInput" placeholder="Ex: 00:45" class="bg-slate-950 border border-slate-700 text-xs p-2 rounded-xl text-white w-28">
+                    <input type="text" id="commentTimestampInput" placeholder="O que alterar neste momento..." class="bg-slate-950 border border-slate-700 text-xs p-2 rounded-xl text-white flex-1">
+                    <button type="button" onclick="addTimestampComment()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-4 py-2 rounded-xl font-medium cursor-pointer">Enviar</button>
+                </div>
+                <div id="timestampList" class="space-y-2 max-h-36 overflow-y-auto bg-slate-950/50 p-3 rounded-xl border border-slate-800">
+                    <p class="text-xs text-slate-500 italic">Nenhum timestamp enviado ainda.</p>
+                </div>
+            </div>
+            <p class="text-[11px] text-amber-400/80 text-center">Aviso: Capturas de tela e gravações de tela são restritas para segurança.</p>
+        </div>
+    </div>
+
+    <!-- MODAL DE CHAT INTERNO -->
+    <div id="chatModal" class="fixed inset-0 bg-black/80 hidden flex items-center justify-center p-4 z-50">
+        <div class="bg-slate-900 border border-slate-700 rounded-2xl w-full max-w-lg p-6 space-y-4 h-[500px] flex flex-col justify-between">
+            <div class="flex justify-between items-center border-b border-slate-700 pb-3">
+                <h3 class="font-bold text-lg text-white" id="chatTitle">Chat do Pedido</h3>
+                <button type="button" onclick="closeModal('chatModal')" class="text-slate-400 hover:text-white cursor-pointer">✕</button>
+            </div>
+            
+            <div id="chatMessagesArea" class="flex-1 overflow-y-auto space-y-3 pr-2"></div>
+
+            <div class="flex gap-2 pt-2 border-t border-slate-800">
+                <input type="text" id="chatInputMessage" placeholder="Digite sua mensagem..." class="bg-slate-950 border border-slate-700 text-xs p-2.5 rounded-xl text-white flex-1">
+                <button type="button" onclick="sendChatMessage()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-4 py-2.5 rounded-xl font-medium cursor-pointer">Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let state = {
+            currentUser: null,
+            clients: [],
+            credits: 0,
+            revenue: 0,
+            planPending: false,
+            planPendingUser: '',
+            orders: [],
+            reviews: []
+        };
+
+        let activeChatOrderId = null;
+        let activePreviewOrderId = null;
+        let activeReviewOrderId = null;
+
+        function switchAuthTab(tab) {
+            const loginForm = document.getElementById('loginForm');
+            const registerForm = document.getElementById('registerForm');
+            const tabLoginBtn = document.getElementById('tabLoginBtn');
+            const tabRegisterBtn = document.getElementById('tabRegisterBtn');
+
+            if (tab === 'login') {
+                loginForm.classList.remove('hidden');
+                registerForm.classList.add('hidden');
+                tabLoginBtn.className = "flex-1 py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white transition cursor-pointer";
+                tabRegisterBtn.className = "flex-1 py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition cursor-pointer";
+            } else {
+                loginForm.classList.add('hidden');
+                registerForm.classList.remove('hidden');
+                tabRegisterBtn.className = "flex-1 py-2 text-xs font-semibold rounded-lg bg-indigo-600 text-white transition cursor-pointer";
+                tabLoginBtn.className = "flex-1 py-2 text-xs font-semibold rounded-lg text-slate-400 hover:text-white transition cursor-pointer";
+            }
+        }
+
+        function handleRegister(e) {
+            e.preventDefault();
+            const name = document.getElementById('regName').value.trim();
+            const email = document.getElementById('regEmail').value.trim();
+            const whatsapp = document.getElementById('regWhatsapp').value.trim();
+            const password = document.getElementById('regPassword').value;
+
+            const exists = state.clients.find(c => c.email === email);
+            if (exists) {
+                alert('Este e-mail já está cadastrado! Faça login.');
+                switchAuthTab('login');
+                return;
+            }
+
+            const newClient = { id: Date.now(), name, email, whatsapp, password };
+            state.clients.push(newClient);
+            state.currentUser = newClient;
+
+            e.target.reset();
+
+            // Verificação automática do Dono
+            if (email === "arthurfadigas38@gmail.com") {
+                alert(`👑 Bem-vindo de volta, Chefe! Acesso ao Painel Admin liberado.`);
+                switchView('admin');
+            } else {
+                switchView('client');
+                alert(`Conta criada com sucesso! Seja bem-vindo(a), ${name}!`);
+            }
+        }
+
+        function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            // Se for o dono acessando diretamente com o e-mail cadastrado
+            if (email === "arthurfadigas38@gmail.com") {
+                state.currentUser = { name: "Arthur (Dono)", email: email, whatsapp: "Admin" };
+                e.target.reset();
+                alert(`👑 Acesso de Dono reconhecido! Bem-vindo ao Painel Admin.`);
+                switchView('admin');
+                return;
+            }
+
+            const client = state.clients.find(c => c.email === email && c.password === password);
+            if (!client) {
+                alert('E-mail ou senha incorretos, ou conta não cadastrada.');
+                return;
+            }
+
+            state.currentUser = client;
+            e.target.reset();
+            switchView('client');
+            alert(`Login realizado com sucesso! Bem-vindo de volta, ${client.name}!`);
+        }
+
+        function logoutClient() {
+            state.currentUser = null;
+            switchView('client');
+        }
+
+        function tryAccessAdmin() {
+            // Se já estiver logado como o dono, abre direto
+            if (state.currentUser && state.currentUser.email === "arthurfadigas38@gmail.com") {
+                switchView('admin');
+                return;
+            }
+
+            const senha = prompt("Digite a senha de administrador do thut studio:");
+            if (senha === "thutstudio13/11") {
+                switchView('admin');
+            } else if (senha !== null) {
+                alert("Senha incorreta! Acesso negado.");
+            }
+        }
+
+        function switchView(view) {
+            const authView = document.getElementById('authView');
+            const clientView = document.getElementById('clientView');
+            const adminView = document.getElementById('adminView');
+            const btnClient = document.getElementById('btnClient');
+            const btnAdmin = document.getElementById('btnAdmin');
+            const loggedBadge = document.getElementById('loggedUserBadge');
+            const navToggleContainer = document.getElementById('navToggleContainer');
+
+            // Se não houver usuário logado, força a tela de autenticação
+            if (!state.currentUser) {
+                authView.classList.remove('hidden');
+                clientView.classList.add('hidden');
+                adminView.classList.add('hidden');
+                loggedBadge.classList.add('hidden');
+                if (navToggleContainer) navToggleContainer.classList.add('hidden');
+                return;
+            }
+
+            // Se estiver logado, exibe os botões de navegação no topo
+            if (navToggleContainer) navToggleContainer.classList.remove('hidden');
+            loggedBadge.classList.remove('hidden');
+            document.getElementById('headerClientName').innerText = state.currentUser.name;
+
+            if (view === 'client') {
+                authView.classList.add('hidden');
+                adminView.classList.add('hidden');
+                clientView.classList.remove('hidden');
+                document.getElementById('welcomeClientName').innerText = state.currentUser.name;
+                btnClient.className = "px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white shadow transition cursor-pointer";
+                btnAdmin.className = "px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition cursor-pointer";
+            } else {
+                authView.classList.add('hidden');
+                clientView.classList.add('hidden');
+                adminView.classList.remove('hidden');
+                btnAdmin.className = "px-4 py-2 rounded-lg text-sm font-medium bg-indigo-600 text-white shadow transition cursor-pointer";
+                btnClient.className = "px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition cursor-pointer";
+            }
+            render();
+        }
+
+        function openModal(id) { 
+            const el = document.getElementById(id);
+            if (el) el.classList.remove('hidden'); 
+        }
+
+        function closeModal(id) { 
+            const el = document.getElementById(id);
+            if (el) el.classList.add('hidden'); 
+        }
+
+        function handleScheduleSubmit(e) {
+            e.preventDefault();
+            if (!state.currentUser) {
+                alert('Você precisa estar logado para agendar!');
+                switchView('client');
+                return;
+            }
+
+            const fileInput = document.getElementById('videoFile');
+            const file = fileInput && fileInput.files ? fileInput.files[0] : null;
+            const fileName = file ? file.name : 'video.mp4';
+            const obs = document.getElementById('videoObs').value;
+            const date = document.getElementById('scheduleDate').value;
+            const time = document.getElementById('scheduleTime').value;
+            const paymentMethod = document.getElementById('paymentMethod').value;
+
+            if (paymentMethod === 'credit') {
+                if (state.credits <= 0) { 
+                    alert('Você não possui créditos disponíveis! Compre um pacote ou selecione pagamento avulso via PIX.'); 
+                    return; 
+                }
+                state.credits -= 1;
+            } else {
+                state.revenue += 20;
+            }
+
+            state.orders.push({ 
+                id: Date.now(), 
+                clientName: state.currentUser.name,
+                clientEmail: state.currentUser.email,
+                clientWhatsapp: state.currentUser.whatsapp || 'N/A',
+                date, 
+                time, 
+                fileName, 
+                obs, 
+                type: paymentMethod, 
+                status: 'Agendado',
+                previewLink: '',
+                finalLink: '',
+                timestamps: [],
+                messages: [{ sender: 'Sistema', text: `Pedido criado por ${state.currentUser.name}. Obs: ${obs || 'Nenhuma'}` }],
+                review: null
+            });
+
+            closeModal('scheduleModal');
+            e.target.reset();
+            render();
+            alert('Agendamento realizado com sucesso!');
+        }
+
+        function requestPlan() {
+            state.planPending = true;
+            state.planPendingUser = state.currentUser ? state.currentUser.name : 'Cliente';
+            closeModal('planModal');
+            render();
+            alert('Solicitação registrada! Vá ao Painel Admin para verificar e liberar os créditos.');
+        }
+
+        function autoVerifyPix() {
+            alert("🔄 Verificando recebimento na conta do Nubank...");
+            setTimeout(() => {
+                state.credits += 8;
+                state.revenue += 120;
+                state.planPending = false;
+                render();
+                alert("✅ Pagamento de R$ 120,00 confirmado! 8 créditos liberados.");
+            }, 1000);
+        }
+
+        function updateStatus(id, status) {
+            const o = state.orders.find(x => x.id === id);
+            if (o) { o.status = status; render(); }
+        }
+
+        function savePreviewLink(id, link) {
+            const o = state.orders.find(x => x.id === id);
+            if (o) { o.previewLink = link; }
+        }
+
+        function saveFinalLink(id, link) {
+            const o = state.orders.find(x => x.id === id);
+            if (o) { o.finalLink = link; }
+        }
+
+        function openPreviewModal(id) {
+            activePreviewOrderId = id;
+            const o = state.orders.find(x => x.id === id);
+            const area = document.getElementById('previewContentArea');
+            
+            if (!o.previewLink) {
+                area.innerHTML = `<p class="text-xs text-slate-400">Nenhuma prévia cadastrada ainda pelo editor.</p>`;
+            } else {
+                area.innerHTML = `<a href="${o.previewLink}" target="_blank" class="text-indigo-400 underline text-sm font-semibold">Abrir Prévia Protegida em Nova Aba</a>`;
+            }
+            renderTimestamps();
+            openModal('previewModal');
+        }
+
+        function addTimestampComment() {
+            const tInput = document.getElementById('timestampInput');
+            const cInput = document.getElementById('commentTimestampInput');
+            const timeVal = tInput.value;
+            const commentVal = cInput.value;
+
+            if (!timeVal || !commentVal) { alert('Preencha o timestamp e o comentário.'); return; }
+
+            const o = state.orders.find(x => x.id === activePreviewOrderId);
+            if (o) {
+                o.timestamps.push({ time: timeVal, comment: commentVal });
+                tInput.value = '';
+                cInput.value = '';
+                renderTimestamps();
+            }
+        }
+
+        function renderTimestamps() {
+            const o = state.orders.find(x => x.id === activePreviewOrderId);
+            const list = document.getElementById('timestampList');
+            if (!list) return;
+
+            if (!o || o.timestamps.length === 0) {
+                list.innerHTML = `<p class="text-xs text-slate-500 italic">Nenhum timestamp enviado ainda.</p>`;
+                return;
+            }
+            list.innerHTML = o.timestamps.map(t => `
+                <div class="bg-slate-900 p-2 rounded-lg border border-slate-800 flex items-center justify-between text-xs">
+                    <div><span class="font-mono text-indigo-400 font-bold mr-2">[${t.time}]</span><span class="text-slate-300">${t.comment}</span></div>
+                </div>
+            `).join('');
+        }
+
+        function openChatModal(id) {
+            activeChatOrderId = id;
+            const o = state.orders.find(x => x.id === id);
+            document.getElementById('chatTitle').innerText = `Chat: ${o.fileName} (${o.clientName})`;
+            renderChatMessages();
+            openModal('chatModal');
+        }
+
+        function sendChatMessage() {
+            const input = document.getElementById('chatInputMessage');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const o = state.orders.find(x => x.id === activeChatOrderId);
+            if (o) {
+                const isClientView = !document.getElementById('clientView').classList.contains('hidden');
+                const senderName = isClientView ? o.clientName : 'Editor (Thut)';
+                o.messages.push({ sender: senderName, text });
+                input.value = '';
+                renderChatMessages();
+            }
+        }
+
+        function renderChatMessages() {
+            const o = state.orders.find(x => x.id === activeChatOrderId);
+            const area = document.getElementById('chatMessagesArea');
+            if (!o || !area) return;
+
+            area.innerHTML = o.messages.map(m => `
+                <div class="p-2.5 rounded-xl text-xs bg-slate-950 border border-slate-800">
+                    <span class="font-bold text-indigo-400">${m.sender}:</span>
+                    <p class="text-slate-300 mt-1">${m.text}</p>
+                </div>
+            `).join('');
+            area.scrollTop = area.scrollHeight;
+        }
+
+        function openReviewModal(id) {
+            activeReviewOrderId = id;
+            openModal('reviewModal');
+        }
+
+        function submitReview() {
+            const rating = parseInt(document.getElementById('reviewRatingInput').value);
+            const comment = document.getElementById('reviewCommentInput').value;
+
+            if (!comment) { alert('Escreva um comentário para a avaliação.'); return; }
+
+            const o = state.orders.find(x => x.id === activeReviewOrderId);
+            if (o) {
+                o.review = { rating, comment };
+                state.reviews.push({ rating, comment, author: o.clientName });
+                closeModal('reviewModal');
+                document.getElementById('reviewCommentInput').value = '';
+                render();
+                alert('Obrigado pela sua avaliação! Ela já está visível no mural.');
+            }
+        }
+
+        function render() {
+            if (!state.currentUser) return;
+
+            document.getElementById('clientCreditsDisplay').innerText = state.credits;
+            document.getElementById('adminRevenueDisplay').innerText = `R$ ${state.revenue.toFixed(2)}`;
+            document.getElementById('adminClientsCount').innerText = state.clients.length;
+            
+            let avgRating = "0.0";
+            if (state.reviews.length > 0) {
+                let totalStars = state.reviews.reduce((acc, r) => acc + r.rating, 0);
+                avgRating = (totalStars / state.reviews.length).toFixed(1);
+            }
+            
+            document.getElementById('adminRatingDisplay').innerText = avgRating;
+            document.getElementById('adminTotalReviewsCount').innerText = `Baseado em ${state.reviews.length} avaliações`;
+            document.getElementById('clientAverageRatingBadge').innerText = `Média: ${avgRating} estrelas`;
+
+            const clientsTable = document.getElementById('adminClientsTable');
+            if (state.clients.length === 0) {
+                clientsTable.innerHTML = `<tr><td colspan="3" class="py-3 text-center text-slate-500">Nenhum cliente cadastrado ainda.</td></tr>`;
+            } else {
+                clientsTable.innerHTML = state.clients.map(c => `
+                    <tr class="border-b border-slate-700/30">
+                        <td class="py-2.5 px-4 font-semibold text-white">${c.name}</td>
+                        <td class="py-2.5 px-4 text-slate-300">${c.email}</td>
+                        <td class="py-2.5 px-4 text-emerald-400 font-mono">${c.whatsapp}</td>
+                    </tr>
+                `).join('');
+            }
+
+            const reviewsGrid = document.getElementById('clientReviewsGrid');
+            if (state.reviews.length === 0) {
+                reviewsGrid.innerHTML = `<p class="text-xs text-slate-500 italic col-span-3">Nenhuma avaliação cadastrada por clientes ainda. Conclua um pedido para avaliar!</p>`;
+            } else {
+                reviewsGrid.innerHTML = state.reviews.map(r => `
+                    <div class="bg-slate-900 border border-slate-700/60 p-4 rounded-xl space-y-2">
+                        <div class="text-amber-400 text-sm">${'★'.repeat(r.rating)}${'☆'.repeat(5 - r.rating)}</div>
+                        <p class="text-xs text-slate-300">"${r.comment}"</p>
+                        <p class="text-[10px] text-slate-500">- ${r.author}</p>
+                    </div>
+                `).join('');
+            }
+
+            const cTable = document.getElementById('clientOrdersTable');
+            const myOrders = state.currentUser ? state.orders.filter(o => o.clientEmail === state.currentUser.email) : [];
+            if (myOrders.length === 0) {
+                cTable.innerHTML = `<tr><td colspan="5" class="py-4 text-center text-slate-500 text-xs">Nenhum pedido realizado ainda.</td></tr>`;
+            } else {
+                cTable.innerHTML = myOrders.map(o => `
+                    <tr class="border-b border-slate-700/30">
+                        <td class="py-3 px-4 font-mono text-xs">${o.date} às ${o.time}</td>
+                        <td class="py-3 px-4 text-xs font-mono text-indigo-300">${o.fileName}</td>
+                        <td class="py-3 px-4 text-xs font-semibold text-amber-400">${o.status}</td>
+                        <td class="py-3 px-4 text-xs">
+                            ${o.previewLink ? `<button type="button" onclick="openPreviewModal(${o.id})" class="bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-300 px-2.5 py-1 rounded cursor-pointer">Ver Prévia & Revisar</button>` : '<span class="text-slate-500">Aguardando prévia</span>'}
+                        </td>
+                        <td class="py-3 px-4 text-xs space-x-2">
+                            <button type="button" onclick="openChatModal(${o.id})" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1 rounded cursor-pointer">Chat (${o.messages.length})</button>
+                            ${o.finalLink && o.status === 'Concluído' ? `<a href="${o.finalLink}" target="_blank" class="bg-emerald-600/30 text-emerald-300 px-2.5 py-1 rounded inline-block">Baixar Vídeo</a>` : ''}
+                            ${o.status === 'Concluído' && !o.review ? `<button type="button" onclick="openReviewModal(${o.id})" class="bg-amber-600/30 hover:bg-amber-600/50 text-amber-300 px-2.5 py-1 rounded cursor-pointer mt-1">⭐ Avaliar</button>` : ''}
+                            ${o.review ? `<span class="text-amber-400 font-semibold">Evaluated!</span>` : ''}
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            const planRequestsContainer = document.getElementById('adminPlanRequests');
+            if (state.planPending) {
+                planRequestsContainer.innerHTML = `
+                    <div class="bg-indigo-950/40 border border-indigo-500/30 p-4 rounded-xl flex items-center justify-between">
+                        <div>
+                            <p class="text-xs text-indigo-300 font-semibold">⚡ Solicitação de Pacote Mensal (R$ 120,00) - ${state.planPendingUser}</p>
+                            <p class="text-[11px] text-slate-400 mt-0.5">Cliente aguardando a compensação.</p>
+                        </div>
+                        <button type="button" onclick="autoVerifyPix()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-4 py-2 rounded-lg font-medium cursor-pointer shadow flex items-center gap-2">
+                            🔍 Verificar PIX na Conta
+                        </button>
+                    </div>
+                `;
+            } else {
+                planRequestsContainer.innerHTML = `<p class="text-xs text-slate-500 italic">Nenhum pagamento pendente para verificação no momento.</p>`;
+            }
+
+            const aTable = document.getElementById('adminOrdersTable');
+            if (state.orders.length === 0) {
+                aTable.innerHTML = `<tr><td colspan="6" class="py-4 text-center text-slate-500 text-xs">Nenhum pedido na agenda.</td></tr>`;
+            } else {
+                aTable.innerHTML = state.orders.map(o => `
+                    <tr class="border-b border-slate-700/30">
+                        <td class="py-3 px-4 text-xs">
+                            <p class="font-bold text-white">${o.clientName}</p>
+                            <p class="text-[11px] text-slate-400">${o.clientEmail}</p>
+                            <p class="text-[11px] text-emerald-400 font-mono">${o.clientWhatsapp}</p>
+                        </td>
+                        <td class="py-3 px-4 font-mono text-xs">${o.date} - ${o.time}</td>
+                        <td class="py-3 px-4 text-xs font-mono text-indigo-300">${o.fileName}</td>
+                        <td class="py-3 px-4 text-xs space-y-1">
+                            <select onchange="updateStatus(${o.id}, this.value)" class="bg-slate-900 border border-slate-700 text-xs p-1 rounded text-white cursor-pointer">
+                                <option value="Agendado" ${o.status==='Agendado'?'selected':''}>Agendado</option>
+                                <option value="Prévia Pronta" ${o.status==='Prévia Pronta'?'selected':''}>Prévia Pronta</option>
+                                <option value="Concluído" ${o.status==='Concluído'?'selected':''}>Concluído</option>
+                            </select>
+                        </td>
+                        <td class="py-3 px-4 space-y-1">
+                            <input type="text" placeholder="Link da prévia..." value="${o.previewLink}" onchange="savePreviewLink(${o.id}, this.value)" class="bg-slate-900 border border-slate-700 text-xs p-1.5 rounded text-white w-full">
+                            <input type="text" placeholder="Link final..." value="${o.finalLink}" onchange="saveFinalLink(${o.id}, this.value)" class="bg-slate-900 border border-slate-700 text-xs p-1.5 rounded text-white w-full">
+                        </td>
+                        <td class="py-3 px-4 text-xs space-x-2">
+                            <button type="button" onclick="openChatModal(${o.id})" class="bg-slate-700 hover:bg-slate-600 text-slate-200 px-2.5 py-1 rounded cursor-pointer">Chat (${o.messages.length})</button>
+                            ${o.timestamps.length > 0 ? `<span class="bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded">${o.timestamps.length} timestamps</span>` : ''}
+                            ${o.review ? `<span class="text-amber-400">⭐ ${o.review.rating}★</span>` : ''}
+                        </td>
+                    </tr>
+                `).join('');
+            }
+        }
+
+        // Inicialização padrão exigindo login obrigatório
+        switchView('client');
+    </script>
+</body>
+</html>
